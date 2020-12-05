@@ -21,8 +21,15 @@ Note: Login using an account which has access to the windpioneers organisation
 `git clone https://github.com/windpioneers/docker-gdal-python`
 
 ### Push edited image to docker hub
-1. Build the image locally (automatic build on push is currently not set up)
-`docker build -t <hub-user>/<repo-name>[:<tag>] .`
+1. Make necessary edits and build the image locally (automatic build on push is currently not set up)
+`docker build -t windpioneers/gdal-python:<tag> .`
+
+Note: If all we need to do is bump the version of either gdal or python you can use build args,
+
+`docker build --build-arg GDAL_VERSION=v2.4.1 --build-arg PYTHON_RUNTIME_VERSION=3.6.9 -t windpioneers/gdal-python:<tag> .`
+
+Use the versions you need to build with
+
 
 2. Push to docker hub
-`docker push <hub-user>/<repo-name>:<tag>`
+`docker push windpioneers/gdal-python:<tag>`
