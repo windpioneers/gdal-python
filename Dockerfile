@@ -2,8 +2,6 @@
 # and install node and python ourselves
 FROM heroku/heroku:18-build as build
 
-LABEL maintainer="Tom Clark <tom@octue.com>"
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Possible useful extras from cookiecutter
