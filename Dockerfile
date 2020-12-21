@@ -47,4 +47,10 @@ COPY --from=builder  /build/usr/share/gdal/ /usr/share/gdal/
 COPY --from=builder  /build/usr/include/ /usr/include/
 COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
 
+# Dependencies for GDAL
+RUN apt-get update -y && apt-get install -y --fix-missing --no-install-recommends \
+    libkml-dev libproj-dev libgeos-dev \
+    curl autoconf automake bash-completion \
+    && rm -rf /var/cache/apt/lists
+
 RUN ldconfig
