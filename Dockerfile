@@ -11,9 +11,9 @@ ARG GDAL_VERSION=v2.4.1
 
 # Install proj, geos, libkml and build tools needed to compile gdal
 RUN apt-get update -y && apt-get install -y --fix-missing --no-install-recommends \
-    g++ make\
+    g++ make \
     libkml-dev libproj-dev libgeos-dev \
-    curl autoconf automake bash-completion \
+    curl autoconf automake \
     && rm -rf /var/cache/apt/lists
 
 RUN ldconfig
@@ -48,6 +48,7 @@ COPY --from=builder  /build/usr/include/ /usr/include/
 COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
 
 # Dependencies for GDAL
+# Not sure if we need all these libs
 RUN apt-get update -y && apt-get install -y --fix-missing --no-install-recommends \
     libkml-dev libproj-dev libgeos-dev \
     curl autoconf automake bash-completion \
