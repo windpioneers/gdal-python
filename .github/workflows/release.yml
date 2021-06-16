@@ -26,6 +26,6 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: windpioneers/gdal-python:${{ github.ref }}
+          tags: windpioneers/gdal-python:${GITHUB_REF/refs\/tags\//}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
