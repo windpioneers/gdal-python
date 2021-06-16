@@ -1,4 +1,4 @@
-# Wind Pioneers' GDAL Python base image for windquest stack (backend/django)
+# GDAL + Python base image for windquest geo stack
 
 ## Application
 
