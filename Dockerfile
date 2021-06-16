@@ -1,9 +1,7 @@
-# GDAL-PYTHON image base
-ARG BASE_IMAGE=python:3.8.6-slim-buster
-
 ## ==================================
 ## STAGE 1 - GDAL BUILD FROM SOURCE
 ## ==================================
+ARG BASE_IMAGE=python:3.8.10-slim-buster
 FROM $BASE_IMAGE as builder
 
 # GDAL Version
