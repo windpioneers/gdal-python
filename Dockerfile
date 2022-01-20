@@ -46,21 +46,24 @@ RUN mkdir gdal \
 ## ===========================================================
 ## STAGE 2 - Final image with built GDAL and optional devtools
 ## ===========================================================
-FROM $BASE_IMAGE as runner
-LABEL stage=runner
+FROM $BASE_IMAGE as slim
+LABEL stage=slim
 
 COPY --from=builder  /build/usr/share/gdal/ /usr/share/gdal/
 COPY --from=builder  /build/usr/include/ /usr/include/
 COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
 
-# Dependencies for GDAL
+# Dependencies for GDAL not copied from base, plus additional tools
 # Note: It's not clear if we need all these libs in a production environment.
 RUN apt-get update -y && apt-get install -y --fix-missing --no-install-recommends \
     libkml-dev libproj-dev libgeos-dev \
-    curl autoconf automake bash-completion \
+    curl autoconf automake bash-completion libpq-dev gcc git \
     && rm -rf /var/cache/apt/lists
 
 RUN ldconfig
+
+# TODO consider a different stage `FROM slim as dev`, using the `USER` docker command to install all development
+# dependencies without the need for a flag and all these conditionals. Next time!
 
 # [Option] Install development tools
 # Note: this option will only work on an MS vscode devcontainer because it assumes a non-root vscode user
@@ -107,7 +110,7 @@ RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
 
 # Install the specific version of prettier that we have in pre-commit-config to avoid style flip-flopping
 #  Note that the devcontainer settings require a static path to resolve the prettier module, so we add a symlink here
-ARG PRETTIER_VERSION=2.2.1
+ENV PRETTIER_VERSION=2.2.1
 RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
     npm install -g prettier@${PRETTIER_VERSION} && \
     ln -s $(npm root -g)/prettier /usr/local/prettier \
