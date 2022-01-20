@@ -26,45 +26,42 @@ jobs:
           length: '2'
           style: 'lowerCase'
 
-      - name: test generator output
-        run: echo "${{ steps.generator.outputs.name }}"
+      - name: Set mode-specific variables (1/2)     
+        if: ${{ matrix.mode }} == "slim"
+        run: echo "::set-output name=base_image::python:${{ matrix.python }}-slim-buster" && echo "::set-output name=install_dev_tools::false"
 
-#       - name: Set mode-specific variables (1/2)     
-#         if: ${{ matrix.mode }} == "slim"
-#         run: echo "::set-output name=base_image::python:${{ matrix.python }}-slim-buster" && echo "::set-output name=install_dev_tools::false"
+      - name: Set mode-specific variables (2/2)
+        if: ${{ matrix.mode }} == "dev"
+        run: echo "::set-output name=base_image::mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}" && echo "::set-output name=install_dev_tools::true"
 
-#       - name: Set mode-specific variables (2/2)
-#         if: ${{ matrix.mode }} == "dev"
-#         run: echo "::set-output name=base_image::mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}" && echo "::set-output name=install_dev_tools::true"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
 
-#       - name: Set up QEMU
-#         uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-#       - name: Set up Docker Buildx
-#         uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-#       - name: Login to DockerHub
-#         uses: docker/login-action@v1
-#         with:
-#           username: ${{ secrets.DOCKERHUB_USERNAME }}
-#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: GDAL_VERSION=${{ matrix.gdal }},BASE_IMAGE=python:${{ steps.vars.outputs.base_image }},INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
+          push: true
+          tags: windpioneers/gdal-python:${{ steps.generator.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 
-#       - name: Build and push
-#         uses: docker/build-push-action@v2
-#         with:
-#           context: .
-#           platforms: linux/amd64,linux/arm64
-#           build-args: GDAL_VERSION=${{ matrix.gdal }},BASE_IMAGE=python:${{ steps.vars.outputs.base_image }},INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
-#           push: true
-#           tags: windpioneers/gdal-python:${{ steps.generator.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
+    # - name: Duplicate image from DockerHub to GCR
+    #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
+    #    - https://ianwhitestone.work/docker-builds-gcr-github-actions/
+    #    - https://github.com/docker/build-push-action/blob/master/docs/advanced/copy-between-registries.md
 
-#     # - name: Duplicate image from DockerHub to GCR
-#     #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
-#     #    - https://ianwhitestone.work/docker-builds-gcr-github-actions/
-#     #    - https://github.com/docker/build-push-action/blob/master/docs/advanced/copy-between-registries.md
-
-#       - name: Image digest
-#         run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
         
   release:
     needs: docker
