@@ -8,8 +8,8 @@ jobs:
   docker:
     strategy:
       matrix:
-        python: [3.8, 3.9]
-        gdal: [2.4.1]
+        python: ["3.8", "3.9"]
+        gdal: ["2.4.1"]
         mode: ["slim", "dev"]
 
     runs-on: ubuntu-latest
