@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2
         
       - name: Generate name
-        uses: TGPSKI/name-generator-node-action@v2
+        uses: thclark/coolname-generator-action@0.0.2
         id: generator
         with:
           separator: '-'
