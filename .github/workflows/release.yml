@@ -26,7 +26,10 @@ jobs:
           length: '2'
           style: 'lowerCase'
 
-#       - name: Set mode-specific variables (1/2)
+      - name: test generator output
+        run: echo "${{ steps.generator.outputs.name }}"
+
+#       - name: Set mode-specific variables (1/2)     
 #         if: ${{ matrix.mode }} == "slim"
 #         run: echo "::set-output name=base_image::python:${{ matrix.python }}-slim-buster" && echo "::set-output name=install_dev_tools::false"
 
