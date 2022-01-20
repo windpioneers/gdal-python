@@ -73,5 +73,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
       with:
+        tag_name: ${{needs.docker.outputs.name}}
         release_name: ${{needs.docker.outputs.name}}
         draft: true
