@@ -68,6 +68,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:   
+    
+    - name: test generator output
+      run: echo "${{ needs.docker.outputs.name }}"
+      
     - name: Create Release
       uses: actions/create-release@v1
       env:
