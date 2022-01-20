@@ -43,9 +43,9 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          build-args: ["GDAL_VERSION=${{ matrix.gdal }}", "BASE_IMAGE=python:${{ steps.vars.outputs.base_image }}", "INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}"]
+          build-args: GDAL_VERSION=${{ matrix.gdal }},BASE_IMAGE=python:${{ steps.vars.outputs.base_image }},INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
           push: true
-          tags: ["windpioneers/gdal-python:${{ github.event.release.tag_name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}"]
+          tags: windpioneers/gdal-python:${{ github.event.release.tag_name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 
     # - name: Duplicate image from DockerHub to GCR
     #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
