@@ -1,4 +1,4 @@
-# Python + Geo Tools - production and development images
+# Python + Geo Tools container images
 
 Can be used to develop and productionise a geodjango project or other scientific / geospatial services.
 
