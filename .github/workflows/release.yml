@@ -29,14 +29,13 @@ jobs:
       - name: Set mode-specific variables
         id: vars
         run: |
-          if (test ${{ matrix.mode }} = "slim"); \
-            echo ::set-output name=base_image::"python:${{ matrix.python }}-slim-buster" \
-            echo ::set-output name=install_dev_tools::"false" \
-          fi;  \
-          if (test ${{ matrix.mode }} = "dev"); \
-            echo ::set-output name=base_image::""mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}" \
-            echo ::set-output name=install_dev_tools::"true" \
-          fi;  
+          if (test ${{ matrix.mode }} = slim) then
+            echo ::set-output name=base_image::"python:${{ matrix.python }}-slim-buster"
+            echo ::set-output name=install_dev_tools::"false"
+          elif (test ${{ matrix.mode }} = dev) then
+            echo "::set-output name=base_image::mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}"
+            echo "::set-output name=install_dev_tools::true"
+          fi
   
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
