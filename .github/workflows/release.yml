@@ -4,7 +4,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  coolname:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      name: ${{ steps.generator.outputs.name }}
+    steps:
+      - name: Generate name
+        uses: thclark/coolname-generator-action@main
+        id: generator
+        with:
+          separator: '-'
+          length: '2'
+          style: 'lowerCase'
+          
   docker:
+    needs: coolname
     strategy:
       matrix:
         python: ["3.8", "3.9"]
@@ -12,8 +27,6 @@ jobs:
         mode: ["slim", "dev"]
     runs-on: ubuntu-latest
     timeout-minutes: 300
-    outputs:
-      name: ${{ steps.generator.outputs.name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -59,7 +72,7 @@ jobs:
             BASE_IMAGE=${{ steps.vars.outputs.base_image }}
             INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
           push: true
-          tags: windpioneers/gdal-python:${{ steps.generator.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
+          tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 
     # - name: Duplicate image from DockerHub to GCR
     #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
@@ -72,7 +85,7 @@ jobs:
   release:
     needs: docker
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 5
     steps:   
     
     - name: test generator output
@@ -83,6 +96,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
       with:
-        tag_name: ${{needs.docker.outputs.name}}
-        release_name: ${{needs.docker.outputs.name}}
+        tag_name: ${{ needs.coolname.outputs.name }}
+        release_name: ${{ needs.docker.coolname.name }}
         draft: true
