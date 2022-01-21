@@ -6,7 +6,7 @@
 #   python:3.9-slim-buster
 #   mcr.microsoft.com/vscode/devcontainers/python:0-3.9
 ARG BASE_IMAGE
-FROM $BASE_IMAGE as builder
+FROM ${BASE_IMAGE} as builder
 LABEL stage=builder
 
 # GDAL Version
@@ -46,7 +46,7 @@ RUN mkdir gdal \
 ## ===========================================================
 ## STAGE 2 - Final image with built GDAL and optional devtools
 ## ===========================================================
-FROM $BASE_IMAGE as slim
+FROM ${BASE_IMAGE} as slim
 LABEL stage=slim
 
 COPY --from=builder  /build/usr/share/gdal/ /usr/share/gdal/
