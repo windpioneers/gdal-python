@@ -10,7 +10,7 @@ FROM $BASE_IMAGE as builder
 LABEL stage=builder
 
 # GDAL Version
-ARG GDAL_VERSION=v2.4.1
+ARG GDAL_VERSION
 
 # Install proj, geos, libkml and build tools needed to compile gdal
 RUN apt-get update -y && \
@@ -25,7 +25,7 @@ RUN ldconfig
 
 # Build GDAL
 RUN mkdir gdal \
-    && curl -L https://github.com/OSGeo/gdal/archive/${GDAL_VERSION}.tar.gz | tar xz -C gdal --strip-components=1 \
+    && curl -L https://github.com/OSGeo/gdal/archive/v${GDAL_VERSION}.tar.gz | tar xz -C gdal --strip-components=1 \
     && cd gdal/gdal \
     && ./configure  --prefix=/usr \
         --without-libtool \
