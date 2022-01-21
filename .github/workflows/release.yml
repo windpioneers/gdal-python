@@ -83,7 +83,7 @@ jobs:
         run: echo ${{ steps.docker_build.outputs.digest }}
         
   release:
-    needs: docker
+    needs: [coolname, docker]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:   
@@ -97,5 +97,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
       with:
         tag_name: ${{ needs.coolname.outputs.name }}
-        release_name: ${{ needs.docker.coolname.name }}
+        release_name: ${{ needs.coolname.outputs.name }}
         draft: true
