@@ -26,14 +26,18 @@ jobs:
           length: '2'
           style: 'lowerCase'
 
-      - name: Set mode-specific variables (1/2)     
-        if: ${{ matrix.mode }} == "slim"
-        run: echo "::set-output name=base_image::python:${{ matrix.python }}-slim-buster" && echo "::set-output name=install_dev_tools::false"
-
-      - name: Set mode-specific variables (2/2)
-        if: ${{ matrix.mode }} == "dev"
-        run: echo "::set-output name=base_image::mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}" && echo "::set-output name=install_dev_tools::true"
-
+      - name: Set mode-specific variables
+        id: vars
+        run: |
+          if (test ${{ matrix.mode }} = "slim"); \
+            echo ::set-output name=base_image::"python:${{ matrix.python }}-slim-buster" \
+            echo ::set-output name=install_dev_tools::"false" \
+          fi;  \
+          if (test ${{ matrix.mode }} = "dev"); \
+            echo ::set-output name=base_image::""mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}" \
+            echo ::set-output name=install_dev_tools::"true" \
+          fi;  
+  
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
 
@@ -51,7 +55,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          build-args: GDAL_VERSION=${{ matrix.gdal }},BASE_IMAGE=python:${{ steps.vars.outputs.base_image }},INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
+          build-args: GDAL_VERSION=${{ matrix.gdal }},BASE_IMAGE=${{ steps.vars.outputs.base_image }},INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
           push: true
           tags: windpioneers/gdal-python:${{ steps.generator.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 
