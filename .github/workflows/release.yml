@@ -54,7 +54,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          build-args: GDAL_VERSION=${{ matrix.gdal }},BASE_IMAGE=${{ steps.vars.outputs.base_image }},INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
+          build-args: "GDAL_VERSION=${{ matrix.gdal }} --build-arg BASE_IMAGE=${{ steps.vars.outputs.base_image }} --build-arg INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}"
           push: true
           tags: windpioneers/gdal-python:${{ steps.generator.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 
