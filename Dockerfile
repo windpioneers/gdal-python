@@ -53,13 +53,13 @@ COPY --from=builder  /build/usr/share/gdal/ /usr/share/gdal/
 COPY --from=builder  /build/usr/include/ /usr/include/
 COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
 
-# Dependencies for GDAL not copied from base, plus additional tools
-# Note: It's not clear if we need all these libs in a production environment.
+# Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others 
 RUN apt-get update -y && apt-get install -y --fix-missing --no-install-recommends \
     libkml-dev libproj-dev libgeos-dev \
     curl autoconf automake bash-completion libpq-dev gcc git \
+    libhdf5-dev \
     && rm -rf /var/cache/apt/lists
-
+    
 RUN ldconfig
 
 # TODO consider a different stage `FROM slim as dev`, using the `USER` docker command to install all development
