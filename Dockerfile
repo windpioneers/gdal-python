@@ -19,6 +19,7 @@ RUN apt-get update -y && \
     g++ make \
     libkml-dev libproj-dev libgeos-dev \
     curl autoconf automake \
+    && apt-get clean \
     && rm -rf /var/cache/apt/lists
 
 RUN ldconfig
