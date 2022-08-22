@@ -90,6 +90,13 @@ RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
     -a 'bindkey "\$terminfo[kcuu1]" history-substring-search-up' \
     -a 'bindkey "\$terminfo[kcud1]" history-substring-search-down' \
     ; fi
+    
+# Install spaceship theme and terminal prompt onto oh-my-zsh
+RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
+    git clone https://github.com/spaceship-prompt/spaceship-prompt.git "/home/vscode/.oh-my-zsh/custom/themes/spaceship-prompt" --depth=1 && \
+    ln -s "/home/vscode/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme" "/home/vscode/.oh-my-zsh/custom/themes/spaceship.zsh-theme" \
+    ; fi
+COPY ./.zshrc /home/vscode
 
 # The non-root user defined in the devcontainer.json file needs write permission to /usr/local/src
 # in order for poetry to install git dependencies (this is where it clones them).
