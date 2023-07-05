@@ -9,10 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Add to Board
-        uses: monry/actions-add-issue-to-project@v1
+        uses: actions/add-to-project@v0.5.0
         with:
-          # Personal Access Token with `repo`, `org:read` and `org:write` granted
+          project-url: https://github.com/orgs/windpioneers/projects/4
           github-token: ${{ secrets.PROJECT_ISSUES_TOKEN_GITHUB }}
-          project-owner: "windpioneers"
-          project-number: 4
-          issue-id: ${{ github.event.issue.node_id }}
