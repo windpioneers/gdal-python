@@ -134,3 +134,29 @@ RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
 
 # Setting this ensures print statements and log messages promptly appear
 ENV PYTHONUNBUFFERED TRUE
+
+# Tell zsh where you want to store history
+#     This folder is mapped into the container, so that history will persist over container rebuilds.
+#
+#     !!!IMPORTANT!!!
+#     Make sure your .zsh_history file is NOT committed into your repository, as it can contain
+#     sensitive information. You should add
+#         .devcontainer/.zsh_history
+#     to your .gitignore file.
+#
+WORKDIR /workspace
+ENV HISTFILE="/workspace/.devcontainer/.zsh_history"
+
+# Install poetry
+USER vscode
+ENV POETRY_HOME=/home/vscode/.poetry
+RUN curl -sSL https://install.python-poetry.org | python -
+ENV PATH "$POETRY_HOME/bin:$PATH"
+RUN poetry config virtualenvs.create false
+
+# Overcome the fact that yarn don't bother putting their keys on the ring (required for installing sshd feature)...
+# https://github.com/yarnpkg/yarn/issues/7866#issuecomment-1404052064
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmour -o "/usr/share/keyrings/yarn-keyring.gpg" & \
+    echo "deb [signed-by=/usr/share/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list & \
+    gpg --refresh-keys & \
+    apt-get update -y
