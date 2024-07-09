@@ -14,10 +14,10 @@ jobs:
         uses: thclark/coolname-generator-action@main
         id: generator
         with:
-          separator: '-'
-          length: '2'
-          style: 'lowerCase'
-          
+          separator: "-"
+          length: "2"
+          style: "lowerCase"
+
   docker:
     needs: coolname
     strategy:
@@ -30,26 +30,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        
+
       - name: Generate name
         uses: thclark/coolname-generator-action@main
         id: generator
         with:
-          separator: '-'
-          length: '2'
-          style: 'lowerCase'
+          separator: "-"
+          length: "2"
+          style: "lowerCase"
 
       - name: Set mode-specific variables
         id: vars
         run: |
           if (test ${{ matrix.mode }} = slim) then
-            echo ::set-output name=base_image::"python:${{ matrix.python }}-slim-buster"
+            echo ::set-output name=base_image::"python:${{ matrix.python }}-slim-bookworm"
             echo ::set-output name=install_dev_tools::"false"
           elif (test ${{ matrix.mode }} = dev) then
-            echo "::set-output name=base_image::mcr.microsoft.com/vscode/devcontainers/python:0-${{ matrix.python }}"
+            echo "::set-output name=base_image::mcr.microsoft.com/vscode/devcontainers/python:1-${{ matrix.python }}-bookworm"
             echo "::set-output name=install_dev_tools::true"
           fi
-  
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
 
@@ -74,28 +74,27 @@ jobs:
           push: true
           tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 
-    # - name: Duplicate image from DockerHub to GCR
-    #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
-    #    - https://ianwhitestone.work/docker-builds-gcr-github-actions/
-    #    - https://github.com/docker/build-push-action/blob/master/docs/advanced/copy-between-registries.md
+      # - name: Duplicate image from DockerHub to GCR
+      #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
+      #    - https://ianwhitestone.work/docker-builds-gcr-github-actions/
+      #    - https://github.com/docker/build-push-action/blob/master/docs/advanced/copy-between-registries.md
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
-        
+
   release:
     needs: [coolname, docker]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    steps:   
-    
-    - name: test generator output
-      run: echo "${{ needs.docker.outputs.name }}"
-      
-    - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
-      with:
-        tag_name: ${{ needs.coolname.outputs.name }}
-        release_name: ${{ needs.coolname.outputs.name }}
-        draft: true
+    steps:
+      - name: test generator output
+        run: echo "${{ needs.docker.outputs.name }}"
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, no need to create your own.
+        with:
+          tag_name: ${{ needs.coolname.outputs.name }}
+          release_name: ${{ needs.coolname.outputs.name }}
+          draft: true
