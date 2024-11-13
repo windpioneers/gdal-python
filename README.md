@@ -183,15 +183,9 @@ Containers are build and tagged in a matrix, allowing us to add gdal/python vers
 3. Build the image locally just to check it works. You won't push it from your machine, so don't need to tag it (here we tag as `local-gdal-python` so you can build locally and try it out). We support aarch64 and x86_64 architecture, so always make sure images build for both.
 
 ```
-docker buildx build --platform linux/arm64 --platform linux/aarch64 --build-arg BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:0-3.9 --build-arg INSTALL_DEV_TOOLS=true --platform linux/x86_64 --platform linux/aarch64 -t local-gdal-python .
+docker buildx build --platform linux/arm64 --platform linux/aarch64 --platform linux/x86_64 --build-arg BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:3.12 --build-arg INSTALL_DEV_TOOLS=true -t local-gdal-python .
 ```
 
 4. Once satisfied that your dockerfile builds, push or merge your code to main branch.
 
-5. In GitHub Releases, click "create release". Give your new release a name which is:
-
-- lower case
-- a noun
-- hasn't been used before
-
-> Be creative. Choose `button`? `wildberry`? Up to you. Surprise me. Keep it clean.
+5. Go to GitHub actions and manually run the build-release workflow, this will assign the release a `coolname`.

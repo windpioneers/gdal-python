@@ -3,7 +3,7 @@
 {
   "name": "gdal-python",
   "build": {
-    "dockerfile": "../Dockerfile",
+    "dockerfile": "./Dockerfile",
     "context": "..",
     "args": {
       "BASE_IMAGE": "mcr.microsoft.com/vscode/devcontainers/python:0-3.9",

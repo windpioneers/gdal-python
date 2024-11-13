@@ -24,7 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.10", "3.11", "3.12"]
-        gdal: ["2.4.1"]
+        gdal: ["3.9.3"]
+        proj: ["9.5.0"]
+        uv: ["0.5.1"]
         mode: ["slim", "dev"]
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -71,6 +73,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             GDAL_VERSION=${{ matrix.gdal }}
+            UV_VERSION=${{ matrix.uv }}
+            PROJ_VERSION=${{ matrix.proj }}
             BASE_IMAGE=${{ steps.vars.outputs.base_image }}
             INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
           push: true
