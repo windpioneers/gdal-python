@@ -1,4 +1,5 @@
-FROM windpioneers/gdal-python:button-gdal-2.4.1-python-3.9-dev
+# FROM windpioneers/gdal-python:button-gdal-2.4.1-python-3.9-dev
+FROM mcr.microsoft.com/vscode/devcontainers/python:dev-3.12
 
 # Tell zsh where you want to store history
 #     We leave you to decide, but if you put this into a folder that's been mapped
@@ -24,9 +25,9 @@ ENV HISTFILE="workspace/.devcontainer/.zsh_history"
 #     - poetry and dependencies can be agony, so we want per-project control at least for now
 #     - if a repo is not using poetry, it doesn't make sense for us to force the presence of the tool
 USER vscode
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-ENV PATH "/home/vscode/.poetry/bin:$PATH"
-RUN poetry config virtualenvs.create false
+# RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+# ENV PATH "/home/vscode/.poetry/bin:$PATH"
+# RUN poetry config virtualenvs.create false
 #
 # It is possible to install dependencies with a cache, like this:
 # COPY pyproject.toml poetry.lock ./
