@@ -131,10 +131,12 @@ COPY --from=builder  /build_gdal_python/usr/ /usr/
 COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
 
 # Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others 
-RUN apt-get update -y && apt-get install -y --fix-missing --no-install-recommends \
-    libkml-dev libgeos-dev \
-    curl autoconf automake bash-completion libpq-dev gcc git \
-    libhdf5-dev \
+RUN apt-get update -y \
+    && apt-get install -y --fix-missing --no-install-recommends \
+        libkml-dev libgeos-dev libpq-dev \
+        libhdf5-dev \
+        curl autoconf automake bash-completion build-essential gcc git \
+    && apt-get clean \
     && rm -rf /var/cache/apt/lists
     
 RUN ldconfig
