@@ -47,10 +47,8 @@ jobs:
         run: |
           if (test ${{ matrix.mode }} = slim) then
             echo "base_image=python:${{ matrix.python }}-slim-bookworm" >> $GITHUB_OUTPUT
-            echo "install_dev_tools=false" >> $GITHUB_OUTPUT
           elif (test ${{ matrix.mode }} = dev) then
             echo "base_image=mcr.microsoft.com/vscode/devcontainers/python:1-${{ matrix.python }}-bookworm" >> $GITHUB_OUTPUT
-            echo "install_dev_tools=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up QEMU
@@ -76,7 +74,7 @@ jobs:
             UV_VERSION=${{ matrix.uv }}
             PROJ_VERSION=${{ matrix.proj }}
             BASE_IMAGE=${{ steps.vars.outputs.base_image }}
-            INSTALL_DEV_TOOLS=${{ steps.vars.outputs.install_dev_tools }}
+          target: ${{ matrix.mode }}
           push: true
           tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
 

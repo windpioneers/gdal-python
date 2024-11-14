@@ -22,6 +22,7 @@ ARG UV_VERSION=0.5.1
 ARG NUMPY_VERSION=2.1.3
 
 # Install proj, geos, libkml and build tools needed to compile gdal
+# Note: libxml2-dev are used to bring the slim base python images inline with the dev base images
 RUN apt-get update -y && \
     apt-get upgrade -y && \
     export DEBIAN_FRONTEND=noninteractive && \
@@ -30,6 +31,7 @@ RUN apt-get update -y && \
         python3-numpy python3-setuptools \
         libkml-dev libgeos-dev libtiff-dev libgeotiff-dev \
         libhdf5-dev \
+        libxml2-dev \
         libopenjp2-7-dev libjpeg-dev libwebp-dev libpng-dev \
         libdeflate-dev zlib1g-dev libzstd-dev libexpat-dev \
         libpq-dev libsqlite3-dev sqlite3 \
@@ -52,7 +54,8 @@ RUN export PYTHON_SHORT_VERSION=$(python --version | sed 's/Python //' | cut -d.
 RUN ldconfig
 
 # Install the specified version of numpy; cmake will pick up the header files and build gdal against them
-RUN pip install --root-user-action ignore numpy==${NUMPY_VERSION}
+# Note: setuptools is also required as it's not bundled on python:slim base images (but is present with devcontainers)
+RUN pip install --root-user-action ignore setuptools numpy==${NUMPY_VERSION}
 
 ENV PROJ_INSTALL_PREFIX=/proj
 
@@ -85,7 +88,7 @@ RUN mkdir -p proj \
     && for i in /build${PROJ_INSTALL_PREFIX}/bin/*; do patchelf --replace-needed libproj.so.${PROJ_SO_FIRST} libinternalproj.so.${PROJ_SO_FIRST} $i; done
 
 # Build GDAL
-RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //')\
+RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
     && mkdir -p /gdal/build \
     && curl -L https://github.com/OSGeo/gdal/archive/refs/tags/v${GDAL_VERSION}.tar.gz | tar xz -C gdal --strip-components=1 \
     && cd /gdal/build \
@@ -119,9 +122,9 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //')\
     && for i in /build_gdal_version_changing/usr/bin/*; do ${GCC_ARCH}-linux-gnu-strip -s $i 2>/dev/null || /bin/true; done
 
 
-## ===========================================================
-## STAGE 2 - Final image with built GDAL and optional devtools
-## ===========================================================
+## =====================================
+## STAGE 2 - Final image with built GDAL
+## =====================================
 FROM ${BASE_IMAGE} AS slim
 LABEL stage=slim
 
@@ -135,6 +138,7 @@ RUN apt-get update -y \
     && apt-get install -y --fix-missing --no-install-recommends \
         libkml-dev libgeos-dev libpq-dev \
         libhdf5-dev \
+        libxml2 \
         curl autoconf automake bash-completion build-essential gcc git \
     && apt-get clean \
     && rm -rf /var/cache/apt/lists
@@ -144,18 +148,20 @@ RUN ldconfig
 # Install uv package manager
 RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
 
-# TODO consider a different stage `FROM slim as dev`, using the `USER` docker command to install all development
-# dependencies without the need for a flag and all these conditionals. Next time!
 
-# [Option] Install development tools
-# Note: this option will only work on an MS vscode devcontainer because it assumes a non-root vscode user
-ARG INSTALL_DEV_TOOLS="true"
+## ===================================================
+## STAGE 3 - Final image with built GDAL and Dev tools
+## ===================================================
+FROM slim AS dev
+LABEL stage=dev
+
+# NOTE: This build stage must only be run using mcr devcontainer base 
+# images, as it requires the vscode user to be present.
+ARG NON_ROOT_USER=vscode
 
 # Install Node.js (useful to run some dev tools like prettier)
 ARG NODE_VERSION="lts/*"
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1" \
-    ; fi
+RUN su $NON_ROOT_USER -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"
 
 # Install Oh-My-Zsh shell
 #    - af-magic theme because it's most similar to the git colour scheme
@@ -164,57 +170,44 @@ RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
 #    - command history file file mapped into the .devcontainer folder to enable reuse between container builds
 ARG ZSH_HISTORY_FILE="/workspace/.devcontainer/.zsh_history"
 ENV HISTFILE="${ZSH_HISTORY_FILE}"
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.1/zsh-in-docker.sh)" -- \ 
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.1/zsh-in-docker.sh)" -- \ 
     -t af-magic \
     -p git -p ssh-agent -p 'history-substring-search' \
     -a 'bindkey "\$terminfo[kcuu1]" history-substring-search-up' \
-    -a 'bindkey "\$terminfo[kcud1]" history-substring-search-down' \
-    ; fi
-    
+    -a 'bindkey "\$terminfo[kcud1]" history-substring-search-down'
+
 # Install spaceship theme and terminal prompt onto oh-my-zsh
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    git clone https://github.com/spaceship-prompt/spaceship-prompt.git "/home/vscode/.oh-my-zsh/custom/themes/spaceship-prompt" --depth=1 && \
-    ln -s "/home/vscode/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme" "/home/vscode/.oh-my-zsh/custom/themes/spaceship.zsh-theme" \
-    ; fi
-COPY ./.zshrc /home/vscode
+RUN git clone https://github.com/spaceship-prompt/spaceship-prompt.git "/home/${NON_ROOT_USER}/.oh-my-zsh/custom/themes/spaceship-prompt" --depth=1 && \
+    ln -s "/home/${NON_ROOT_USER}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme" "/home/${NON_ROOT_USER}/.oh-my-zsh/custom/themes/spaceship.zsh-theme"
 
 # The non-root user defined in the devcontainer.json file needs write permission to /usr/local/src
 # in order for poetry to install git dependencies (this is where it clones them).
 # Other installers (e.g. the austin profiling tool) will also require access to this directory
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    mkdir -p /usr/local && chown -R vscode /usr/local \
-    ; fi
+RUN mkdir -p /usr/local && chown -R ${NON_ROOT_USER} /usr/local
 
 # Install austin for code profiling
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    cd /usr/local/src && \
+RUN cd /usr/local/src && \
     git clone --depth=1 https://github.com/P403n1x87/austin.git && \
     cd /usr/local/src/austin && \
     autoreconf --install && \
     ./configure && \
     make && \
-    make install \
-    ; fi
+    make install
 
 # Install the specific version of prettier that we have in pre-commit-config to avoid style flip-flopping
 #  Note that the devcontainer settings require a static path to resolve the prettier module, so we add a symlink here
 ARG PRETTIER_VERSION=2.2.1
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    npm install -g prettier@${PRETTIER_VERSION} && \
-    ln -s $(npm root -g)/prettier /usr/local/prettier \
-    ; fi  
+RUN npm install -g prettier@${PRETTIER_VERSION} && \
+    ln -s $(npm root -g)/prettier /usr/local/prettier
 
 # Make sure that if you install requests, it can find the Certificate Authority bundle.
 # Overcomes this issue: https://github.com/python-poetry/poetry/issues/1012
-RUN if [ "${INSTALL_DEV_TOOLS}" = "true" ]; then \
-    export PYTHON_VERSION=`python -c 'import sys; print("{0}.{1}".format(*sys.version_info[:2]))'` && \
+RUN export PYTHON_VERSION=`python -c 'import sys; print("{0}.{1}".format(*sys.version_info[:2]))'` && \
     mkdir -p /home/vscode/.local/lib/python${PYTHON_VERSION}/site-packages/certifi/ && \
-    ln -s $(python -c "import certifi; print(certifi.where())") /home/vscode/.local/lib/python${PYTHON_VERSION}/site-packages/certifi/cacert.pem \
-    ; fi
+    ln -s $(python -c "import certifi; print(certifi.where())") /home/vscode/.local/lib/python${PYTHON_VERSION}/site-packages/certifi/cacert.pem
 
 # Setting this ensures print statements and log messages promptly appear
-ENV PYTHONUNBUFFERED TRUE
+ENV PYTHONUNBUFFERED=TRUE
 
 # Tell zsh where you want to store history
 #     This folder is mapped into the container, so that history will persist over container rebuilds.
