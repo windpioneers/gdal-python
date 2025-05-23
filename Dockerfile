@@ -11,9 +11,9 @@ ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.12-bookworm
 FROM ${BASE_IMAGE} AS builder
 LABEL stage=builder
 
-ARG PROJ_VERSION=9.5.0
-ARG GDAL_VERSION=3.9.3
-ARG UV_VERSION=0.5.1
+ARG PROJ_VERSION=9.6.0
+ARG GDAL_VERSION=3.10.0
+ARG UV_VERSION=0.7.7
 
 # This is the verison of numpy against which gdal python/numpy bindings are built.
 # It won't be copied into your stack. If you install numpy in a python project that
