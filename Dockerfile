@@ -141,9 +141,12 @@ RUN apt-get update -y \
     && apt-get clean \
     && rm -rf /var/cache/apt/lists
 
-# Note: This must be done AFTER the previous step, since installingn libgeos will install libproj
-# as a dependency, and overwrite the destination /usr/share/proj.db file with an outdated version
 
+# TODO Building geos and libgeotiff from source will ensure they're using a consistent version of proj
+
+# Note: This must be done AFTER the previous step, since installing libgeotiff and libgeos
+# will install libproj as a dependency, and overwrite the destination /usr/share/proj.db
+# file with an outdated version
 COPY --from=builder /build/usr/share/gdal/ /usr/share/gdal/
 COPY --from=builder /build/usr/include/ /usr/include/
 COPY --from=builder /build_gdal_python/usr/ /usr/
