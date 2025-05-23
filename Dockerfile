@@ -3,15 +3,17 @@
 # ================================
 
 # Set the base image with an arg, e.g.
-#   python:3.9-slim-buster
-#   mcr.microsoft.com/vscode/devcontainers/python:0-3.9
-ARG BASE_IMAGE
+# ARG BASE_IMAGE=python:3.12-slim-bookworm
+# or
+ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.13-bookworm
+
+
 FROM ${BASE_IMAGE} AS builder
 LABEL stage=builder
 
-ARG PROJ_VERSION=9.5.0
-ARG GDAL_VERSION=3.9.3
-ARG UV_VERSION=0.5.1
+ARG PROJ_VERSION=9.6.0
+ARG GDAL_VERSION=3.10.0
+ARG UV_VERSION=0.7.7
 
 # This is the verison of numpy against which gdal python/numpy bindings are built.
 # It won't be copied into your stack. If you install numpy in a python project that
@@ -19,7 +21,9 @@ ARG UV_VERSION=0.5.1
 # your needs, *provided the C headers are compatible*. Sometimes, the numpy C headers
 # change, so if you get segmentation faults ensure you have a compatible version of
 # numpy installed.
-ARG NUMPY_VERSION=2.1.3
+ARG NUMPY_VERSION=2.2.6
+
+RUN export PYTHON_SHORT_VERSION=$(python --version | sed 's/Python //' | cut -d. -f1,2)
 
 # Install proj, geos, libkml and build tools needed to compile gdal
 # Note: libxml2-dev are used to bring the slim base python images inline with the dev base images
@@ -29,25 +33,16 @@ RUN apt-get update -y && \
     apt-get install -y --fix-missing --no-install-recommends \
         g++ cmake build-essential ninja-build \
         python3-numpy python3-setuptools \
-        libkml-dev libgeos-dev libtiff-dev libgeotiff-dev \
+        libkml-dev \
+        libgeos-dev \
+        libtiff-dev \
+        libgeotiff-dev \
         libhdf5-dev \
         libxml2-dev \
         libopenjp2-7-dev libjpeg-dev libwebp-dev libpng-dev \
         libdeflate-dev zlib1g-dev libzstd-dev libexpat-dev \
         libpq-dev libsqlite3-dev sqlite3 \
         pkg-config patchelf curl swig && \
-    apt-get clean && \
-    rm -rf /var/cache/apt/lists
-
-
-# libpython3.12-dev is not in bookworm so we have to add debian's cutting edge repo
-# TODO in subsequent updates to debian's build lists it should be possible to subsume
-# this into the prior step.
-RUN export PYTHON_SHORT_VERSION=$(python --version | sed 's/Python //' | cut -d. -f1,2) && \
-    echo "deb http://deb.debian.org/debian sid main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libpython${PYTHON_SHORT_VERSION}-dev && \
-    sed -i '/sid/d' /etc/apt/sources.list && \
     apt-get clean && \
     rm -rf /var/cache/apt/lists
 
@@ -104,6 +99,9 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
         -DBUILD_TESTING=OFF \
         -DPython_LOOKUP_VERSION=$PYTHON_EXACT_VERSION \
         -DBUILD_PYTHON_BINDINGS=ON \
+        -DGDAL_USE_EXTERNAL_TIFF=OFF \
+        -DGDAL_USE_EXTERNAL_GEOTIFF=OFF \
+        -DGDAL_ENABLE_DRIVER_COG=ON \
     && ninja \
     && DESTDIR="/build" ninja install \
     && cd ../.. \
@@ -128,21 +126,38 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
 FROM ${BASE_IMAGE} AS slim
 LABEL stage=slim
 
-COPY --from=builder  /build/usr/share/gdal/ /usr/share/gdal/
-COPY --from=builder  /build/usr/include/ /usr/include/
-COPY --from=builder  /build_gdal_python/usr/ /usr/
-COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
 
-# Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others 
+# Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others
 RUN apt-get update -y \
     && apt-get install -y --fix-missing --no-install-recommends \
-        libkml-dev libgeos-dev libpq-dev \
-        libhdf5-dev \
-        libxml2 \
-        curl autoconf automake bash-completion build-essential gcc git \
+    libkml-dev \
+    libgeos-dev \
+    libtiff6 libgeotiff5 libopenjp2-7 libjpeg62-turbo libwebp7 libpng16-16 \
+    libzstd1 libdeflate0 libexpat1 libxml2 \
+    libhdf5-103-1 \
+    libsqlite3-0 \
+    libpq5 \
+    curl autoconf automake bash-completion build-essential gcc git \
     && apt-get clean \
     && rm -rf /var/cache/apt/lists
-    
+
+
+# TODO Building geos and libgeotiff from source will ensure they're using a consistent version of proj
+
+# Note: This must be done AFTER the previous step, since installing libgeotiff and libgeos
+# will install libproj as a dependency, and overwrite the destination /usr/share/proj.db
+# file with an outdated version
+COPY --from=builder /build/usr/share/gdal/ /usr/share/gdal/
+COPY --from=builder /build/usr/include/ /usr/include/
+COPY --from=builder /build_gdal_python/usr/ /usr/
+COPY --from=builder /build_gdal_version_changing/usr/ /usr/
+COPY --from=builder /build/proj/bin/* /usr/bin/
+COPY --from=builder /build/proj/lib/libinternalproj.so* /usr/lib/
+COPY --from=builder /build/proj/share/proj /usr/share/proj
+
+ENV PROJ_DATA=/usr/share/proj
+
+
 RUN ldconfig
 
 # Install uv package manager
@@ -227,3 +242,5 @@ ENV HISTFILE="/workspace/.devcontainer/.zsh_history"
 #     echo "deb [signed-by=/usr/share/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list & \
 #     gpg --refresh-keys & \
 #     apt-get update -y
+
+COPY input.jpg /workspace/input.jpg
