@@ -242,5 +242,3 @@ ENV HISTFILE="/workspace/.devcontainer/.zsh_history"
 #     echo "deb [signed-by=/usr/share/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list & \
 #     gpg --refresh-keys & \
 #     apt-get update -y
-
-COPY input.jpg /workspace/input.jpg
