@@ -24,9 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.11", "3.12"]
-        gdal: ["3.9.3"]
-        proj: ["9.5.0"]
-        uv: ["0.5.1"]
+        gdal: ["3.10.0"]
+        proj: ["9.6.0"]
+        uv: ["0.7.7"]
         mode: ["slim", "dev"]
     runs-on: ubuntu-latest
     timeout-minutes: 300
