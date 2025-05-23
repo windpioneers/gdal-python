@@ -5,7 +5,7 @@
 # Set the base image with an arg, e.g.
 # ARG BASE_IMAGE=python:3.12-slim-bookworm
 # or
-ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.12-bookworm
+ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.13-bookworm
 
 
 FROM ${BASE_IMAGE} AS builder

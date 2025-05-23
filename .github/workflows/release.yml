@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.11", "3.12"]
+        python: ["3.11", "3.12", "3.13"]
         gdal: ["3.10.0"]
         proj: ["9.6.0"]
         uv: ["0.7.7"]
