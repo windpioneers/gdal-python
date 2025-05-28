@@ -1,12 +1,17 @@
 
-# STAGE 1 - GDAL BUILD FROM SOURCE
-# ================================
+# =========================
+# STAGE 0 - SET BASE IMAGES
+# =========================
 
 # Set the base image with an arg, e.g.
 # ARG BASE_IMAGE=python:3.12-slim-bookworm
-# or
 ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.13-bookworm
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.7.7
 
+
+# ================================
+# STAGE 1 - GDAL BUILD FROM SOURCE
+# ================================
 
 FROM ${BASE_IMAGE} AS builder
 LABEL stage=builder
@@ -119,9 +124,15 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
     && for i in /build_gdal_version_changing/usr/bin/*; do ${GCC_ARCH}-linux-gnu-strip -s $i 2>/dev/null || /bin/true; done
 
 
-## =====================================
-## STAGE 2 - Final image with built GDAL
-## =====================================
+# =============================
+# STAGE 2 - Distroless uv image
+# =============================
+FROM ${UV_IMAGE} AS uv
+
+
+# ==========================================
+# STAGE 3 - Final slim image with built GDAL
+# ==========================================
 FROM ${BASE_IMAGE} AS slim
 LABEL stage=slim
 
@@ -164,13 +175,13 @@ ENV PROJ_DATA=/usr/share/proj
 
 RUN ldconfig
 
-# Install uv package manager
-RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
+# Install uv package manager, binding for use by vscode user
+# RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh -s -- --bindir /usr/local/bin
+COPY --from=uv /uv /uvx /bin/
 
-
-## ===================================================
-## STAGE 3 - Final image with built GDAL and Dev tools
-## ===================================================
+# =======================================================
+# STAGE 4 - Final dev image with built GDAL and Dev tools
+# =======================================================
 FROM slim AS dev
 LABEL stage=dev
 
