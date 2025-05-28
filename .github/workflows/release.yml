@@ -72,9 +72,9 @@ jobs:
           build-args: |
             PYTHON_SHORT_VERSION=${{ matrix.python }}
             GDAL_VERSION=${{ matrix.gdal }}
-            UV_VERSION=${{ matrix.uv }}
             PROJ_VERSION=${{ matrix.proj }}
             BASE_IMAGE=${{ steps.vars.outputs.base_image }}
+            UV_IMAGE=ghcr.io/astral-sh/uv:${{ matrix.uv }}
           target: ${{ matrix.mode }}
           push: true
           tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
