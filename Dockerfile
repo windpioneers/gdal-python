@@ -146,12 +146,9 @@ RUN apt-get update -y \
     libhdf5-103-1 \
     libsqlite3-0 \
     libpq5 \
-    curl autoconf automake bash-completion build-essential gcc git \
+    curl autoconf automake bash-completion build-essential cmake gcc git python3-dev \
     && apt-get clean \
     && rm -rf /var/cache/apt/lists
-
-
-# TODO Building geos and libgeotiff from source will ensure they're using a consistent version of proj
 
 # Note: This must be done AFTER the previous step, since installing libgeotiff and libgeos
 # will install libproj as a dependency, and overwrite the destination /usr/share/proj.db
@@ -164,18 +161,35 @@ COPY --from=builder /build/proj/bin/* /usr/bin/
 COPY --from=builder /build/proj/lib/libinternalproj.so* /usr/lib/
 COPY --from=builder /build/proj/share/proj /usr/share/proj
 
+# Install uv package manager, binding for use by vscode user
+COPY --from=uv /uv /uvx /bin/
 
 # Enable python to find the osgeo package (from osgeo import gdal, osr)
 ARG PYTHON_SHORT_VERSION=3.13
 ENV PYTHONPATH="/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
 
+# Set folder for proj.db 
 ENV PROJ_DATA=/usr/share/proj
 
+# Build crc32c to avoid annoying warnings
+RUN git clone https://github.com/google/crc32c \
+    && cd crc32c \
+    && git submodule update --init --recursive \
+    && mkdir build \
+    && cd build \
+    && cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCRC32C_BUILD_TESTS=no \
+        -DCRC32C_BUILD_BENCHMARKS=no \
+        -DBUILD_SHARED_LIBS=yes \
+        .. \
+    && make all install
 
+RUN uv pip install --system --no-binary google-crc32c google-crc32c
+
+# Configure installed libs
 RUN ldconfig
 
-# Install uv package manager, binding for use by vscode user
-COPY --from=uv /uv /uvx /bin/
 
 # =======================================================
 # STAGE 4 - Final dev image with built GDAL and Dev tools
