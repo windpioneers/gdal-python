@@ -70,6 +70,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           build-args: |
+            PYTHON_SHORT_VERSION=${{ matrix.python }}
             GDAL_VERSION=${{ matrix.gdal }}
             UV_VERSION=${{ matrix.uv }}
             PROJ_VERSION=${{ matrix.proj }}

@@ -11,6 +11,7 @@ ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.13-bookworm
 FROM ${BASE_IMAGE} AS builder
 LABEL stage=builder
 
+ARG PYTHON_SHORT_VERSION=3.13
 ARG PROJ_VERSION=9.6.0
 ARG GDAL_VERSION=3.10.0
 ARG UV_VERSION=0.7.7
@@ -22,8 +23,6 @@ ARG UV_VERSION=0.7.7
 # change, so if you get segmentation faults ensure you have a compatible version of
 # numpy installed.
 ARG NUMPY_VERSION=2.2.6
-
-RUN export PYTHON_SHORT_VERSION=$(python --version | sed 's/Python //' | cut -d. -f1,2)
 
 # Install proj, geos, libkml and build tools needed to compile gdal
 # Note: libxml2-dev are used to bring the slim base python images inline with the dev base images
@@ -154,6 +153,11 @@ COPY --from=builder /build_gdal_version_changing/usr/ /usr/
 COPY --from=builder /build/proj/bin/* /usr/bin/
 COPY --from=builder /build/proj/lib/libinternalproj.so* /usr/lib/
 COPY --from=builder /build/proj/share/proj /usr/share/proj
+
+
+# Enable python to find the osgeo package (from osgeo import gdal, osr)
+ARG PYTHON_SHORT_VERSION=3.13
+ENV PYTHONPATH="/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
 
 ENV PROJ_DATA=/usr/share/proj
 
