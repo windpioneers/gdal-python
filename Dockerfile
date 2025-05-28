@@ -19,7 +19,6 @@ LABEL stage=builder
 ARG PYTHON_SHORT_VERSION=3.13
 ARG PROJ_VERSION=9.6.0
 ARG GDAL_VERSION=3.10.0
-ARG UV_VERSION=0.7.7
 
 # This is the verison of numpy against which gdal python/numpy bindings are built.
 # It won't be copied into your stack. If you install numpy in a python project that
@@ -176,7 +175,6 @@ ENV PROJ_DATA=/usr/share/proj
 RUN ldconfig
 
 # Install uv package manager, binding for use by vscode user
-# RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh -s -- --bindir /usr/local/bin
 COPY --from=uv /uv /uvx /bin/
 
 # =======================================================
