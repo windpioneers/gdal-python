@@ -269,13 +269,15 @@ RUN apt-get update -y \
          *) echo "Unsupported TARGETARCH for actionlint: ${TARGETARCH}" && exit 1 ;; \
        esac \
     && cd /tmp \
-    && curl -fsSL -o actionlint.tar.gz \
-         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ACTIONLINT_ARCH}.tar.gz" \
-    && curl -fsSL -o actionlint_checksums.txt \
-         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_checksums.txt" \
-    && grep "linux_${ACTIONLINT_ARCH}.tar.gz$" actionlint_checksums.txt | sha256sum -c - \
-    && tar -xzf actionlint.tar.gz -C /usr/local/bin actionlint \
-    && rm actionlint.tar.gz actionlint_checksums.txt \
+    && ACTIONLINT_TARBALL="actionlint_${ACTIONLINT_VERSION}_linux_${ACTIONLINT_ARCH}.tar.gz" \
+    && ACTIONLINT_CHECKSUMS="actionlint_${ACTIONLINT_VERSION}_checksums.txt" \
+    && curl -fsSL -O \
+         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}" \
+    && curl -fsSL -O \
+         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_CHECKSUMS}" \
+    && grep " ${ACTIONLINT_TARBALL}$" "${ACTIONLINT_CHECKSUMS}" | sha256sum -c - \
+    && tar -xzf "${ACTIONLINT_TARBALL}" -C /usr/local/bin actionlint \
+    && rm "${ACTIONLINT_TARBALL}" "${ACTIONLINT_CHECKSUMS}" \
     && actionlint -version \
     && shellcheck --version
 
