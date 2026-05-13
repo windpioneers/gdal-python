@@ -28,6 +28,16 @@ ARG GDAL_VERSION=3.10.0
 # numpy installed.
 ARG NUMPY_VERSION=2.2.6
 
+# Drop the stale Yarn APT repo inherited from the upstream MS devcontainer
+# Python base image; its signing key (62D54FD4003F6525) is no longer fetchable,
+# which breaks `apt-get update` here and in any downstream consumer that calls it
+# (notably the common-utils devcontainer feature with upgradePackages=true).
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+          /etc/apt/sources.list.d/yarn.sources \
+          /etc/apt/trusted.gpg.d/yarn*.gpg \
+          /usr/share/keyrings/yarn*.gpg \
+ && sed -i '/dl\.yarnpkg\.com/d' /etc/apt/sources.list 2>/dev/null || true
+
 # Install proj, geos, libkml and build tools needed to compile gdal
 # Note: libxml2-dev are used to bring the slim base python images inline with the dev base images
 RUN apt-get update -y && \
@@ -135,6 +145,14 @@ FROM ${UV_IMAGE} AS uv
 FROM ${BASE_IMAGE} AS slim
 LABEL stage=slim
 
+
+# Drop the stale Yarn APT repo inherited from the upstream MS devcontainer
+# Python base image (see comment in the builder stage above for details).
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+          /etc/apt/sources.list.d/yarn.sources \
+          /etc/apt/trusted.gpg.d/yarn*.gpg \
+          /usr/share/keyrings/yarn*.gpg \
+ && sed -i '/dl\.yarnpkg\.com/d' /etc/apt/sources.list 2>/dev/null || true
 
 # Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others
 RUN apt-get update -y \
