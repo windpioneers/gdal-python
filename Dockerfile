@@ -254,6 +254,31 @@ RUN cd /usr/local/src && \
     make && \
     make install
 
+# Install actionlint (GitHub Actions workflow linter) and shellcheck for
+# linting workflow files locally before pushing. Both are no-Node tools:
+# actionlint is a static Go binary; shellcheck is a native apt package.
+# TARGETARCH is populated automatically by buildx for multi-platform builds.
+ARG ACTIONLINT_VERSION=1.7.12
+ARG TARGETARCH
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends shellcheck \
+    && apt-get clean \
+    && rm -rf /var/cache/apt/lists \
+    && case "${TARGETARCH}" in \
+         amd64|arm64) ACTIONLINT_ARCH="${TARGETARCH}" ;; \
+         *) echo "Unsupported TARGETARCH for actionlint: ${TARGETARCH}" && exit 1 ;; \
+       esac \
+    && cd /tmp \
+    && curl -fsSL -o actionlint.tar.gz \
+         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ACTIONLINT_ARCH}.tar.gz" \
+    && curl -fsSL -o actionlint_checksums.txt \
+         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_checksums.txt" \
+    && grep "linux_${ACTIONLINT_ARCH}.tar.gz$" actionlint_checksums.txt | sha256sum -c - \
+    && tar -xzf actionlint.tar.gz -C /usr/local/bin actionlint \
+    && rm actionlint.tar.gz actionlint_checksums.txt \
+    && actionlint -version \
+    && shellcheck --version
+
 # Install the specific version of prettier that we have in pre-commit-config to avoid style flip-flopping
 #  Note that the devcontainer settings require a static path to resolve the prettier module, so we add a symlink here
 ARG PRETTIER_VERSION=2.2.1
