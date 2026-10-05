@@ -5,7 +5,8 @@
 
 # Set the base image with an arg, e.g.
 # ARG BASE_IMAGE=python:3.12-slim-bookworm
-ARG BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.13-bookworm
+ARG BASE_IMAGE=python:3.13-slim-bookworm
+ARG DEV_BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-3.13-bookworm
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.7.7
 
 
@@ -48,14 +49,12 @@ RUN apt-get update -y && \
         python3-numpy python3-setuptools \
         libkml-dev \
         libgeos-dev \
-        libtiff-dev \
-        libgeotiff-dev \
         libhdf5-dev \
         libxml2-dev \
         libopenjp2-7-dev libjpeg-dev libwebp-dev libpng-dev \
         libdeflate-dev zlib1g-dev libzstd-dev libexpat-dev \
         libpq-dev libsqlite3-dev sqlite3 \
-        pkg-config patchelf curl swig && \
+        pkg-config patchelf curl swig git && \
     apt-get clean && \
     rm -rf /var/cache/apt/lists
 
@@ -67,11 +66,13 @@ RUN pip install --root-user-action ignore setuptools numpy==${NUMPY_VERSION}
 
 ENV PROJ_INSTALL_PREFIX=/proj
 
+COPY scripts/split-debug-info.sh /usr/local/bin/split-debug-info
+
 RUN mkdir -p proj \
     && curl -L https://github.com/OSGeo/PROJ/archive/${PROJ_VERSION}.tar.gz | tar xz -C proj --strip-components=1\
     && export PROJ_DB_CACHE_PARAM="" \
     && cd proj \
-    && CFLAGS='-DPROJ_RENAME_SYMBOLS -O2' CXXFLAGS='-DPROJ_RENAME_SYMBOLS -DPROJ_INTERNAL_CPP_NAMESPACE -O2' \
+    && CFLAGS='-DPROJ_RENAME_SYMBOLS -O2 -g' CXXFLAGS='-DPROJ_RENAME_SYMBOLS -DPROJ_INTERNAL_CPP_NAMESPACE -O2 -g' \
         cmake . \
             -G Ninja \
             -DBUILD_SHARED_LIBS=ON \
@@ -89,9 +90,7 @@ RUN mkdir -p proj \
     && ln -s libinternalproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO_FIRST} \
     && ln -s libinternalproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so \
     && rm /build${PROJ_INSTALL_PREFIX}/lib/libproj.*  \
-    && export GCC_ARCH="$(uname -m)" \
-    && ${GCC_ARCH}-linux-gnu-strip -s /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO} \
-    && for i in /build${PROJ_INSTALL_PREFIX}/bin/*; do ${GCC_ARCH}-linux-gnu-strip -s $i 2>/dev/null || /bin/true; done \
+    && split-debug-info /build_debug /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/bin/* \
     && patchelf --set-soname libinternalproj.so.${PROJ_SO_FIRST} /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO} \
     && for i in /build${PROJ_INSTALL_PREFIX}/bin/*; do patchelf --replace-needed libproj.so.${PROJ_SO_FIRST} libinternalproj.so.${PROJ_SO_FIRST} $i; done
 
@@ -101,7 +100,7 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
     && curl -L https://github.com/OSGeo/gdal/archive/refs/tags/v${GDAL_VERSION}.tar.gz | tar xz -C gdal --strip-components=1 \
     && cd /gdal/build \
     # -Wno-psabi avoid 'note: parameter passing for argument of type 'std::pair<double, double>' when C++17 is enabled changed to match C++14 in GCC 10.1' on arm64
-    && CFLAGS='-DPROJ_RENAME_SYMBOLS -O2' CXXFLAGS='-DPROJ_RENAME_SYMBOLS -DPROJ_INTERNAL_CPP_NAMESPACE -O2 -Wno-psabi' \
+    && CFLAGS='-DPROJ_RENAME_SYMBOLS -O2 -g' CXXFLAGS='-DPROJ_RENAME_SYMBOLS -DPROJ_INTERNAL_CPP_NAMESPACE -O2 -g -Wno-psabi' \
         cmake .. \
         -G Ninja \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -112,8 +111,8 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
         -DBUILD_TESTING=OFF \
         -DPython_LOOKUP_VERSION=$PYTHON_EXACT_VERSION \
         -DBUILD_PYTHON_BINDINGS=ON \
-        -DGDAL_USE_EXTERNAL_TIFF=OFF \
-        -DGDAL_USE_EXTERNAL_GEOTIFF=OFF \
+        -DGDAL_USE_TIFF_INTERNAL=ON \
+        -DGDAL_USE_GEOTIFF_INTERNAL=ON \
         -DGDAL_ENABLE_DRIVER_COG=ON \
     && ninja \
     && DESTDIR="/build" ninja install \
@@ -127,10 +126,42 @@ RUN export PYTHON_EXACT_VERSION=$(python --version | sed 's/Python //') \
     && mv /build/usr/include/gdal_version.h /build_gdal_version_changing/usr/include \
     && mv /build/usr/bin/*.py               /build_gdal_python/usr/bin \
     && mv /build/usr/bin                    /build_gdal_version_changing/usr \
-    && export GCC_ARCH="$(uname -m)" \
-    && for i in /build_gdal_version_changing/usr/lib/${GCC_ARCH}-linux-gnu/*; do ${GCC_ARCH}-linux-gnu-strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_gdal_python/usr/lib/python3/dist-packages/osgeo/*.so; do ${GCC_ARCH}-linux-gnu-strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_gdal_version_changing/usr/bin/*; do ${GCC_ARCH}-linux-gnu-strip -s $i 2>/dev/null || /bin/true; done
+    && split-debug-info /build_debug \
+        /build_gdal_version_changing/usr/lib/*-linux-gnu/* \
+        /build_gdal_python/usr/lib/python*/*-packages/osgeo/*.so \
+        /build_gdal_version_changing/usr/bin/*
+
+# Build crc32c to avoid annoying warnings
+RUN git clone https://github.com/google/crc32c \
+    && cd crc32c \
+    && git submodule update --init --recursive \
+    && mkdir build \
+    && cd build \
+    && cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCRC32C_BUILD_TESTS=no \
+        -DCRC32C_BUILD_BENCHMARKS=no \
+        -DBUILD_SHARED_LIBS=yes \
+        .. \
+    && make all \
+    && DESTDIR=/build_crc32c make install \
+    && cd ../.. \
+    && rm -rf crc32c
+
+
+FROM scratch AS gdal-runtime
+COPY --from=builder /build/usr/share/gdal/ /usr/share/gdal/
+COPY --from=builder /build/usr/include/ /usr/include/
+COPY --from=builder /build_gdal_python/usr/ /usr/
+COPY --from=builder /build_gdal_version_changing/usr/ /usr/
+COPY --from=builder /build/proj/bin/* /usr/bin/
+COPY --from=builder /build/proj/lib/libinternalproj.so* /usr/lib/
+COPY --from=builder /build/proj/share/proj /usr/share/proj
+COPY --from=builder /build_crc32c/ /
+
+FROM scratch AS gdal-debug-info
+COPY --from=builder /build_debug/ /
 
 
 # =============================
@@ -145,39 +176,12 @@ FROM ${UV_IMAGE} AS uv
 FROM ${BASE_IMAGE} AS slim
 LABEL stage=slim
 
-
-# Drop the stale Yarn APT repo inherited from the upstream MS devcontainer
-# Python base image (see comment in the builder stage above for details).
-RUN rm -f /etc/apt/sources.list.d/yarn.list \
-          /etc/apt/sources.list.d/yarn.sources \
-          /etc/apt/trusted.gpg.d/yarn*.gpg \
-          /usr/share/keyrings/yarn*.gpg \
- && sed -i '/dl\.yarnpkg\.com/d' /etc/apt/sources.list 2>/dev/null || true
+COPY scripts/install-runtime-deps.sh scripts/check-gdal-linkage.sh /usr/local/bin/
 
 # Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others
-RUN apt-get update -y \
-    && apt-get install -y --fix-missing --no-install-recommends \
-    libkml-dev \
-    libgeos-dev \
-    libtiff6 libgeotiff5 libopenjp2-7 libjpeg62-turbo libwebp7 libpng16-16 \
-    libzstd1 libdeflate0 libexpat1 libxml2 \
-    libhdf5-103-1 \
-    libsqlite3-0 \
-    libpq5 \
-    curl autoconf automake bash-completion build-essential cmake gcc git python3-dev \
-    && apt-get clean \
-    && rm -rf /var/cache/apt/lists
+RUN install-runtime-deps.sh
 
-# Note: This must be done AFTER the previous step, since installing libgeotiff and libgeos
-# will install libproj as a dependency, and overwrite the destination /usr/share/proj.db
-# file with an outdated version
-COPY --from=builder /build/usr/share/gdal/ /usr/share/gdal/
-COPY --from=builder /build/usr/include/ /usr/include/
-COPY --from=builder /build_gdal_python/usr/ /usr/
-COPY --from=builder /build_gdal_version_changing/usr/ /usr/
-COPY --from=builder /build/proj/bin/* /usr/bin/
-COPY --from=builder /build/proj/lib/libinternalproj.so* /usr/lib/
-COPY --from=builder /build/proj/share/proj /usr/share/proj
+COPY --from=gdal-runtime / /
 
 # Install uv package manager, binding for use by vscode user
 COPY --from=uv /uv /uvx /bin/
@@ -189,31 +193,64 @@ ENV PYTHONPATH="/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
 # Set folder for proj.db 
 ENV PROJ_DATA=/usr/share/proj
 
-# Build crc32c to avoid annoying warnings
-RUN git clone https://github.com/google/crc32c \
-    && cd crc32c \
-    && git submodule update --init --recursive \
-    && mkdir build \
-    && cd build \
-    && cmake \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCRC32C_BUILD_TESTS=no \
-        -DCRC32C_BUILD_BENCHMARKS=no \
-        -DBUILD_SHARED_LIBS=yes \
-        .. \
-    && make all install
-
 RUN uv pip install --system --no-binary google-crc32c google-crc32c
 
 # Configure installed libs
-RUN ldconfig
+RUN ldconfig && check-gdal-linkage.sh
+
+
+FROM slim AS slim-debug
+LABEL stage=slim-debug
+
+COPY --from=gdal-debug-info / /
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends gdb valgrind \
+    && apt-get clean \
+    && rm -rf /var/cache/apt/lists
 
 
 # =======================================================
 # STAGE 4 - Final dev image with built GDAL and Dev tools
 # =======================================================
-FROM slim AS dev
+FROM ${DEV_BASE_IMAGE} AS dev
 LABEL stage=dev
+
+# Drop the stale Yarn APT repo inherited from the upstream MS devcontainer
+# Python base image (see comment in the builder stage above for details).
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+          /etc/apt/sources.list.d/yarn.sources \
+          /etc/apt/trusted.gpg.d/yarn*.gpg \
+          /usr/share/keyrings/yarn*.gpg \
+ && sed -i '/dl\.yarnpkg\.com/d' /etc/apt/sources.list 2>/dev/null || true
+
+COPY scripts/install-runtime-deps.sh scripts/check-gdal-linkage.sh /usr/local/bin/
+
+# Dependencies for working with geo tools, KML libraries, HDF5 (for pytables) and some useful others
+RUN install-runtime-deps.sh
+
+COPY --from=gdal-runtime / /
+COPY --from=gdal-debug-info / /
+
+# Install uv package manager, binding for use by vscode user
+COPY --from=uv /uv /uvx /bin/
+
+# Enable python to find the osgeo package (from osgeo import gdal, osr)
+ARG PYTHON_SHORT_VERSION=3.13
+ENV PYTHONPATH="/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
+
+# Set folder for proj.db 
+ENV PROJ_DATA=/usr/share/proj
+
+RUN uv pip install --system --no-binary google-crc32c google-crc32c
+
+# Configure installed libs
+RUN ldconfig && check-gdal-linkage.sh
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends gdb valgrind \
+    && apt-get clean \
+    && rm -rf /var/cache/apt/lists
 
 # NOTE: This build stage must only be run using mcr devcontainer base 
 # images, as it requires the vscode user to be present.
