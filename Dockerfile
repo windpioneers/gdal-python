@@ -49,6 +49,8 @@ RUN apt-get update -y && \
         python3-numpy python3-setuptools \
         libkml-dev \
         libgeos-dev \
+        libtiff-dev \
+        libcurl4-openssl-dev \
         libhdf5-dev \
         libxml2-dev \
         libopenjp2-7-dev libjpeg-dev libwebp-dev libpng-dev \
