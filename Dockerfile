@@ -19,7 +19,7 @@ LABEL stage=builder
 
 ARG PYTHON_SHORT_VERSION=3.13
 ARG PROJ_VERSION=9.6.0
-ARG GDAL_VERSION=3.10.0
+ARG GDAL_VERSION=3.13.3
 
 # This is the verison of numpy against which gdal python/numpy bindings are built.
 # It won't be copied into your stack. If you install numpy in a python project that
