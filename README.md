@@ -35,11 +35,22 @@ These images include additional development features, including:
 
 ## For production
 
-Images with the `-slim` tag suffix are based on python's `buster-slim` images, providing a minimal installation of OS dependencies for quick and low-memory container orchestration, and low memory usage in serverless environments.
+Images with the `-slim` tag suffix are based on python's `slim-bookworm` images, providing a minimal installation of OS dependencies for quick and low-memory container orchestration, and low memory usage in serverless environments.
 
 Of course, these images have none of the developer tools installed but do have `poetry` for installation of your app dependencies.
 
 If you end up needing a development dependency in production (for some reason), that's not a fundamental problem - the `-dev` images shouldn't introduce any insecurities, but will take longer to pass through build process, and cost more to run day-to-day.
+
+## Debugging native crashes
+
+GDAL and PROJ are compiled once per release, python version and architecture, and the same binaries are copied into the `-slim`, `-slim-debug` and `-dev` images.
+
+All shipped binaries are stripped. Their debug symbols are split into `/usr/lib/debug/.build-id/` and included only in:
+
+- `-dev` images, alongside `gdb` and `valgrind`.
+- `-slim-debug` images: the `-slim` image plus the debug symbols, `gdb` and `valgrind`, for reproducing a production crash against the exact production binaries.
+
+`gdb` and `valgrind` pick the symbols up automatically by build ID.
 
 ## Geo Tools
 

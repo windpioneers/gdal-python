@@ -27,9 +27,8 @@ jobs:
         gdal: ["3.10.0"]
         proj: ["9.6.0"]
         uv: ["0.7.7"]
-        mode: ["slim", "dev"]
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 360
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,15 +40,6 @@ jobs:
           separator: "-"
           length: "2"
           style: "lowerCase"
-
-      - name: Set mode-specific variables
-        id: vars
-        run: |
-          if (test ${{ matrix.mode }} = slim) then
-            echo "base_image=python:${{ matrix.python }}-slim-bookworm" >> $GITHUB_OUTPUT
-          elif (test ${{ matrix.mode }} = dev) then
-            echo "base_image=mcr.microsoft.com/vscode/devcontainers/python:1-${{ matrix.python }}-bookworm" >> $GITHUB_OUTPUT
-          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -63,9 +53,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push slim image
         uses: docker/build-push-action@v6.9.0
-        id: build-push
+        id: build_push_slim
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -73,19 +63,57 @@ jobs:
             PYTHON_SHORT_VERSION=${{ matrix.python }}
             GDAL_VERSION=${{ matrix.gdal }}
             PROJ_VERSION=${{ matrix.proj }}
-            BASE_IMAGE=${{ steps.vars.outputs.base_image }}
+            BASE_IMAGE=python:${{ matrix.python }}-slim-bookworm
+            DEV_BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-${{ matrix.python }}-bookworm
             UV_IMAGE=ghcr.io/astral-sh/uv:${{ matrix.uv }}
-          target: ${{ matrix.mode }}
+          target: slim
           push: true
-          tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-${{ matrix.mode }}
+          tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-slim
+
+      - name: Build and push slim debug image
+        uses: docker/build-push-action@v6.9.0
+        id: build_push_slim_debug
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PYTHON_SHORT_VERSION=${{ matrix.python }}
+            GDAL_VERSION=${{ matrix.gdal }}
+            PROJ_VERSION=${{ matrix.proj }}
+            BASE_IMAGE=python:${{ matrix.python }}-slim-bookworm
+            DEV_BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-${{ matrix.python }}-bookworm
+            UV_IMAGE=ghcr.io/astral-sh/uv:${{ matrix.uv }}
+          target: slim-debug
+          push: true
+          tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-slim-debug
+
+      - name: Build and push dev image
+        uses: docker/build-push-action@v6.9.0
+        id: build_push_dev
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PYTHON_SHORT_VERSION=${{ matrix.python }}
+            GDAL_VERSION=${{ matrix.gdal }}
+            PROJ_VERSION=${{ matrix.proj }}
+            BASE_IMAGE=python:${{ matrix.python }}-slim-bookworm
+            DEV_BASE_IMAGE=mcr.microsoft.com/vscode/devcontainers/python:1-${{ matrix.python }}-bookworm
+            UV_IMAGE=ghcr.io/astral-sh/uv:${{ matrix.uv }}
+          target: dev
+          push: true
+          tags: windpioneers/gdal-python:${{ needs.coolname.outputs.name }}-gdal-${{ matrix.gdal }}-python-${{ matrix.python }}-dev
 
       # - name: Duplicate image from DockerHub to GCR
       #  TODO as we've used buildx we can copy the image to gcr.io with the same hash. See:
       #    - https://ianwhitestone.work/docker-builds-gcr-github-actions/
       #    - https://github.com/docker/build-push-action/blob/master/docs/advanced/copy-between-registries.md
 
-      - name: Image digest
-        run: echo ${{ steps.build-push.outputs.digest }}
+      - name: Image digests
+        run: |
+          echo "slim: ${{ steps.build_push_slim.outputs.digest }}"
+          echo "slim-debug: ${{ steps.build_push_slim_debug.outputs.digest }}"
+          echo "dev: ${{ steps.build_push_dev.outputs.digest }}"
 
   release:
     needs: [coolname, docker]
