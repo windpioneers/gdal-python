@@ -18,7 +18,7 @@ FROM ${BASE_IMAGE} AS builder
 LABEL stage=builder
 
 ARG PYTHON_SHORT_VERSION=3.13
-ARG PROJ_VERSION=9.6.0
+ARG PROJ_VERSION=9.9.0
 ARG GDAL_VERSION=3.13.3
 
 # This is the verison of numpy against which gdal python/numpy bindings are built.
